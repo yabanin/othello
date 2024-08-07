@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オセロゲーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            text-align: center;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 2px;
+            background-color: #008000;
+            border: 2px solid #000;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #008000;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .disc {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        .black {
+            background-color: #000;
+        }
+        .white {
+            background-color: #fff;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>オセロゲーム</h1>
+        <div id="board"></div>
+        <div id="status"></div>
+    </div>
+    <script>
+        const board = document.getElementById('board');
+        const status = document.getElementById('status');
+        let currentPlayer = 'black';
+        let gameState = Array(8).fill().map(() => Array(8).fill(null));
+
+        // 初期配置
+        gameState[3][3] = gameState[4][4] = 'white';
+        gameState[3][4] = gameState[4][3] = 'black';
+
+        function createBoard() {
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => makeMove(i, j));
+                    board.appendChild(cell);
+                }
+            }
+            updateBoard();
+        }
+
+        function updateBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                cell.innerHTML = '';
+                if (gameState[row][col]) {
+                    const disc = document.createElement('div');
+                    disc.className = `disc ${gameState[row][col]}`;
+                    cell.appendChild(disc);
+                }
+            });
+            status.textContent = `現在の手番: ${currentPlayer === 'black' ? '黒' : '白'}`;
+        }
+
+        function makeMove(row, col) {
+            if (gameState[row][col] || !isValidMove(row, col)) return;
+
+            gameState[row][col] = currentPlayer;
+            flipDiscs(row, col);
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            updateBoard();
+
+            if (!hasValidMove()) {
+                currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                if (!hasValidMove()) {
+                    endGame();
+                } else {
+                    status.textContent += ' (パス)';
+                }
+            }
+        }
+
+        function isValidMove(row, col) {
+            const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+            return directions.some(dir => isValidDirection(row, col, dir[0], dir[1]));
+        }
+
+        function isValidDirection(row, col, dRow, dCol) {
+            let r = row + dRow;
+            let c = col + dCol;
+            let count = 0;
+
+            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                if (!gameState[r][c]) return false;
+                if (gameState[r][c] === currentPlayer) return count > 0;
+                count++;
+                r += dRow;
+                c += dCol;
+            }
+            return false;
+        }
+
+        function flipDiscs(row, col) {
+            const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+            directions.forEach(dir => {
+                if (isValidDirection(row, col, dir[0], dir[1])) {
+                    let r = row + dir[0];
+                    let c = col + dir[1];
+                    while (gameState[r][c] !== currentPlayer) {
+                        gameState[r][c] = currentPlayer;
+                        r += dir[0];
+                        c += dir[1];
+                    }
+                }
+            });
+        }
+
+        function hasValidMove() {
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    if (!gameState[i][j] && isValidMove(i, j)) return true;
+                }
+            }
+            return false;
+        }
+
+        function endGame() {
+            let blackCount = 0;
+            let whiteCount = 0;
+            gameState.forEach(row => {
+                row.forEach(cell => {
+                    if (cell === 'black') blackCount++;
+                    if (cell === 'white') whiteCount++;
+                });
+            });
+            status.textContent = `ゲーム終了! 黒: ${blackCount}, 白: ${whiteCount}`;
+            if (blackCount > whiteCount) {
+                status.textContent += ' 黒の勝ち!';
+            } else if (whiteCount > blackCount) {
+                status.textContent += ' 白の勝ち!';
+            } else {
+                status.textContent += ' 引き分け!';
+            }
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>
